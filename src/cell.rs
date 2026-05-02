@@ -45,7 +45,8 @@ impl Cell {
 
     fn position(&self) -> Vector2D<i32> {
         let slot = vec2(self.index % BOARD_WIDTH, self.index / BOARD_WIDTH);
-        slot * 16
+        let offset = (agb::display::WIDTH - 16 * BOARD_WIDTH) / 2;
+        slot * 16 + vec2(offset, 0)
     }
 
     fn update(&mut self, neighbors: &[Self; 8]) {
