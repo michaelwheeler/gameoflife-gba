@@ -7,16 +7,14 @@
 
 use agb::{
     display::{
-        GraphicsFrame, Priority,
+        GraphicsFrame,
         object::{Object, SpriteVram},
     },
     fixnum::{Vector2D, vec2},
     input::{Button, ButtonController},
-    println,
 };
-use core::array;
 
-use crate::cell::Cell;
+use world::World;
 
 // By default no_std crates don't get alloc, so you won't be able to use things like Vec
 // until you declare the extern crate. `agb` provides an allocator so it will all work
@@ -24,30 +22,51 @@ extern crate alloc;
 
 mod cell;
 mod sprites;
+mod world;
 
 const BOARD_WIDTH: i32 = 12;
 const BOARD_HEIGHT: i32 = 8;
 
+#[derive(PartialEq)]
 enum GameState {
     Intro,
     Setup,
     Simulation,
 }
 
-type World = [Cell; (BOARD_WIDTH * BOARD_HEIGHT) as usize];
-
 struct Game {
     state: GameState,
-    world: World,
     setup: Setup,
+    simulation: Simulation,
 }
 
 impl Game {
     fn new() -> Self {
         Game {
             state: GameState::Setup,
-            world: array::from_fn(|i| Cell::new(i as i32)),
             setup: Setup::new(),
+            simulation: Simulation::new(),
+        }
+    }
+
+    fn update(&mut self, btn_controller: &ButtonController) {
+        if btn_controller.is_just_pressed(Button::B) {
+            if self.state == GameState::Setup {
+                self.simulation.setup(self.setup.world.clone());
+            }
+            if self.state == GameState::Simulation {
+                self.simulation.running = false;
+            }
+            self.state = match self.state {
+                GameState::Intro => GameState::Setup,
+                GameState::Setup => GameState::Simulation,
+                GameState::Simulation => GameState::Setup,
+            }
+        }
+        match self.state {
+            GameState::Setup => self.setup.update(btn_controller),
+            GameState::Simulation => self.simulation.update(btn_controller),
+            _ => (),
         }
     }
 
@@ -55,14 +74,7 @@ impl Game {
         match self.state {
             GameState::Intro => (),
             GameState::Setup => self.setup.show(frame),
-            GameState::Simulation => (),
-        }
-    }
-
-    fn update(&mut self, btn_controller: &ButtonController) {
-        match self.state {
-            GameState::Setup => self.setup.update(btn_controller),
-            _ => (),
+            GameState::Simulation => self.simulation.show(frame),
         }
     }
 }
@@ -79,7 +91,7 @@ struct Setup {
 impl Setup {
     fn new() -> Self {
         Setup {
-            world: array::from_fn(|i| Cell::new(i as i32)),
+            world: world::empty_world(),
             selection: 0,
         }
     }
@@ -92,8 +104,7 @@ impl Setup {
     }
 
     fn set_selection(&mut self, slot: &Vector2D<i32>) {
-        self.selection =
-            (slot.x.rem_euclid(BOARD_WIDTH) + slot.y.rem_euclid(BOARD_HEIGHT) * BOARD_WIDTH) as u16;
+        self.selection = world::get_index(slot) as u16;
     }
 
     fn update(&mut self, btn_controller: &ButtonController) {
@@ -135,6 +146,49 @@ impl Setup {
             .set_pos(self.position())
             .set_priority(agb::display::Priority::P0)
             .show(frame);
+    }
+}
+
+struct Simulation {
+    world: World,
+    counter: u32,
+    running: bool,
+}
+
+impl Simulation {
+    const STEP_FRAMES: u32 = 30;
+
+    fn new() -> Self {
+        Self {
+            world: world::empty_world(),
+            counter: 0,
+            running: false,
+        }
+    }
+
+    fn setup(&mut self, new_world: World) {
+        self.world = new_world;
+        self.running = true;
+    }
+
+    fn update(&mut self, button_controller: &ButtonController) {
+        if button_controller.is_just_pressed(Button::Start) {
+            self.running = !self.running;
+        }
+        if !self.running {
+            return;
+        }
+        self.counter += 1;
+        if self.counter == Simulation::STEP_FRAMES {
+            self.world = world::next_gen(&self.world);
+            self.counter = 0;
+        }
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        for cell in self.world.iter() {
+            cell.show(frame);
+        }
     }
 }
 

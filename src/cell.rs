@@ -13,6 +13,7 @@ include_aseprite!(
     "src/gfx/cell.aseprite"
 );
 
+#[derive(Clone)]
 pub struct Cell {
     live: bool,
     index: i32,
@@ -23,7 +24,7 @@ impl Cell {
         Cell { live: false, index }
     }
 
-    pub fn thrive(&mut self) {
+    fn thrive(&mut self) {
         self.live = true;
     }
 
@@ -49,7 +50,7 @@ impl Cell {
         slot * 16 + vec2(offset, 0)
     }
 
-    fn update(&mut self, neighbors: &[Self; 8]) {
+    pub fn update(&mut self, neighbors: &[&Self; 8]) {
         let live_neighbors = neighbors.iter().filter(|cell| cell.live).count();
         match live_neighbors {
             2 if self.live => self.thrive(),
