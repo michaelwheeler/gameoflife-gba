@@ -7,10 +7,12 @@
 
 use agb::{
     display::{
-        GraphicsFrame,
+        GraphicsFrame, Priority,
         object::{Object, SpriteVram},
+        tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Vector2D, vec2},
+    include_background_gfx,
     input::{Button, ButtonController},
 };
 
@@ -24,6 +26,12 @@ mod cell;
 mod sprites;
 mod world;
 
+include_background_gfx!(
+    mod background,
+    "000000",
+    INTRO_SCREEN => deduplicate "src/gfx/intro.aseprite",
+);
+
 const BOARD_WIDTH: i32 = 12;
 const BOARD_HEIGHT: i32 = 8;
 
@@ -34,8 +42,27 @@ enum GameState {
     Simulation,
 }
 
+struct Intro(RegularBackground);
+
+impl Intro {
+    fn new() -> Self {
+        let mut bg = RegularBackground::new(
+            Priority::P3,
+            RegularBackgroundSize::Background32x32,
+            TileFormat::FourBpp,
+        );
+        bg.fill_with(&background::INTRO_SCREEN);
+        Intro(bg)
+    }
+
+    fn show(&self, frame: &mut GraphicsFrame) {
+        self.0.show(frame);
+    }
+}
+
 struct Game {
     state: GameState,
+    intro: Intro,
     setup: Setup,
     simulation: Simulation,
 }
@@ -43,7 +70,8 @@ struct Game {
 impl Game {
     fn new() -> Self {
         Game {
-            state: GameState::Setup,
+            state: GameState::Intro,
+            intro: Intro::new(),
             setup: Setup::new(),
             simulation: Simulation::new(),
         }
@@ -72,15 +100,11 @@ impl Game {
 
     fn show(&self, frame: &mut GraphicsFrame) {
         match self.state {
-            GameState::Intro => (),
+            GameState::Intro => self.intro.show(frame),
             GameState::Setup => self.setup.show(frame),
             GameState::Simulation => self.simulation.show(frame),
         }
     }
-}
-
-struct Intro {
-    button_controller: ButtonController,
 }
 
 struct Setup {
@@ -194,6 +218,7 @@ impl Simulation {
 
 #[agb::entry]
 fn main(mut gba: agb::Gba) -> ! {
+    VRAM_MANAGER.set_background_palettes(background::PALETTES);
     let mut gfx = gba.graphics.get();
     let mut btn_controller = ButtonController::new();
     let mut game = Game::new();
