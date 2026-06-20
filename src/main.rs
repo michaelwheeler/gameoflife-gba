@@ -159,7 +159,7 @@ impl Setup {
 
     fn position(&self) -> Vector2D<i32> {
         let offset = (agb::display::WIDTH - 16 * BOARD_WIDTH) / 2;
-        self.slot() * 16 + vec2(offset, 0)
+        self.slot() * 16 + vec2(offset, 0 + 8)
     }
 
     fn show(&self, frame: &mut GraphicsFrame) {
