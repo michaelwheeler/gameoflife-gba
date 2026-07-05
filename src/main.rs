@@ -109,7 +109,7 @@ impl Game {
 
 struct Setup {
     world: World,
-    selection: u16,
+    selection: usize,
 }
 
 impl Setup {
@@ -128,12 +128,12 @@ impl Setup {
     }
 
     fn set_selection(&mut self, slot: &Vector2D<i32>) {
-        self.selection = world::get_index(slot) as u16;
+        self.selection = world::get_index(slot);
     }
 
     fn update(&mut self, btn_controller: &ButtonController) {
         if btn_controller.is_just_pressed(Button::A) {
-            self.world[self.selection as usize].toggle();
+            self.world[self.selection].toggle();
         }
         if btn_controller.is_just_pressed(Button::Right) {
             let slot = self.slot() + vec2(1, 0);
