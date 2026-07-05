@@ -10,27 +10,29 @@ pub fn empty_world() -> World {
     array::from_fn(|i| Cell::new(i as i32))
 }
 
-pub fn get_slot(index: u16) -> Vector2D<i32> {
-    vec2(index as i32 % BOARD_WIDTH, index as i32 / BOARD_WIDTH)
+fn get_slot(index: i32) -> Vector2D<i32> {
+    vec2(index % BOARD_WIDTH, index / BOARD_WIDTH)
 }
 
-pub fn get_index(slot: &Vector2D<i32>) -> i32 {
-    slot.x.rem_euclid(BOARD_WIDTH) + slot.y.rem_euclid(BOARD_HEIGHT) * BOARD_WIDTH
+pub fn get_index(slot: &Vector2D<i32>) -> usize {
+    (slot.x.rem_euclid(BOARD_WIDTH) + slot.y.rem_euclid(BOARD_HEIGHT) * BOARD_WIDTH)
+        .try_into()
+        .unwrap()
 }
 
 pub fn next_gen(world: &World) -> World {
     let mut next = world.clone();
     for (i, cell) in next.iter_mut().enumerate() {
-        let slot = get_slot(i as u16);
+        let slot = get_slot(i.try_into().unwrap());
         let neighbors = {
-            let idx_tl = get_index(&(slot + vec2(-1, -1))) as usize;
-            let idx_tc = get_index(&(slot + vec2(0, -1))) as usize;
-            let idx_tr = get_index(&(slot + vec2(1, -1))) as usize;
-            let idx_ml = get_index(&(slot + vec2(-1, 0))) as usize;
-            let idx_mr = get_index(&(slot + vec2(1, 0))) as usize;
-            let idx_bl = get_index(&(slot + vec2(-1, 1))) as usize;
-            let idx_bc = get_index(&(slot + vec2(0, 1))) as usize;
-            let idx_br = get_index(&(slot + vec2(1, 1))) as usize;
+            let idx_tl = get_index(&(slot + vec2(-1, -1)));
+            let idx_tc = get_index(&(slot + vec2(0, -1)));
+            let idx_tr = get_index(&(slot + vec2(1, -1)));
+            let idx_ml = get_index(&(slot + vec2(-1, 0)));
+            let idx_mr = get_index(&(slot + vec2(1, 0)));
+            let idx_bl = get_index(&(slot + vec2(-1, 1)));
+            let idx_bc = get_index(&(slot + vec2(0, 1)));
+            let idx_br = get_index(&(slot + vec2(1, 1)));
             [
                 &world[idx_tl],
                 &world[idx_tc],
