@@ -13,31 +13,47 @@ include_aseprite!(
     "src/gfx/cell.aseprite"
 );
 
+#[derive(Clone, PartialEq)]
+enum Status {
+    Live,
+    Dead,
+}
+
 #[derive(Clone)]
 pub struct Cell {
-    live: bool,
+    status: Status,
     index: i32,
 }
 
 impl Cell {
     pub fn new(index: i32) -> Self {
-        Cell { live: false, index }
+        Cell {
+            status: Status::Dead,
+            index,
+        }
     }
 
     fn thrive(&mut self) {
-        self.live = true;
+        self.status = Status::Live;
     }
 
     fn perish(&mut self) {
-        self.live = false;
+        self.status = Status::Dead;
+    }
+
+    fn is_live(&self) -> bool {
+        self.status == Status::Live
     }
 
     pub fn toggle(&mut self) {
-        self.live = !self.live;
+        self.status = match self.status {
+            Status::Live => Status::Dead,
+            Status::Dead => Status::Live,
+        }
     }
 
     fn sprite(&self) -> SpriteVram {
-        if self.live {
+        if self.is_live() {
             sprites::LIVE.sprite(0).into()
         } else {
             sprites::DEAD.sprite(0).into()
@@ -51,9 +67,9 @@ impl Cell {
     }
 
     pub fn update(&mut self, neighbors: &[&Self; 8]) {
-        let live_neighbors = neighbors.iter().filter(|cell| cell.live).count();
+        let live_neighbors = neighbors.iter().filter(|cell| cell.is_live()).count();
         match live_neighbors {
-            2 if self.live => self.thrive(),
+            2 if self.is_live() => self.thrive(),
             3 => self.thrive(),
             _ => self.perish(),
         }
