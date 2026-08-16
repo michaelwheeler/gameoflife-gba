@@ -151,6 +151,7 @@ impl Setup {
             let slot = self.slot() + vec2(0, -1);
             self.set_selection(&slot);
         }
+        world::update_status(&mut self.world);
     }
 
     fn sprite(&self) -> SpriteVram {
@@ -196,6 +197,7 @@ impl Simulation {
     }
 
     fn update(&mut self, button_controller: &ButtonController) {
+        world::update_status(&mut self.world);
         if button_controller.is_just_pressed(Button::Start) {
             self.running = !self.running;
         }
