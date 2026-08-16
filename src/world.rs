@@ -20,6 +20,12 @@ pub fn get_index(slot: &Vector2D<i32>) -> usize {
         .unwrap()
 }
 
+pub fn update_status(world: &mut World) {
+    for cell in world.iter_mut() {
+        cell.update_status();
+    }
+}
+
 pub fn next_gen(world: &World) -> World {
     let mut next = world.clone();
     for (i, cell) in next.iter_mut().enumerate() {

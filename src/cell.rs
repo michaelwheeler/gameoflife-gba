@@ -13,10 +13,10 @@ include_aseprite!(
     "src/gfx/cell.aseprite"
 );
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 enum Status {
-    Live,
-    Dead,
+    Live(usize),
+    Dead(usize),
 }
 
 #[derive(Clone)]
@@ -26,37 +26,52 @@ pub struct Cell {
 }
 
 impl Cell {
+    const GROW_FRAMES: usize = 8;
+    const SHRINK_FRAMES: usize = 4;
+
     pub fn new(index: i32) -> Self {
         Cell {
-            status: Status::Dead,
+            status: Status::Dead(0),
             index,
         }
     }
 
     fn thrive(&mut self) {
-        self.status = Status::Live;
+        self.status = match self.status {
+            Status::Live(count) => Status::Live(count),
+            Status::Dead(_) => Status::Live(Cell::GROW_FRAMES),
+        };
     }
 
     fn perish(&mut self) {
-        self.status = Status::Dead;
+        self.status = match self.status {
+            Status::Dead(count) => Status::Dead(count),
+            Status::Live(_) => Status::Dead(Cell::SHRINK_FRAMES),
+        }
     }
 
     fn is_live(&self) -> bool {
-        self.status == Status::Live
+        match self.status {
+            Status::Live(_) => true,
+            Status::Dead(_) => false,
+        }
     }
 
     pub fn toggle(&mut self) {
         self.status = match self.status {
-            Status::Live => Status::Dead,
-            Status::Dead => Status::Live,
+            Status::Live(_) => Status::Dead(Cell::SHRINK_FRAMES),
+            Status::Dead(_) => Status::Live(Cell::GROW_FRAMES),
         }
     }
 
     fn sprite(&self) -> SpriteVram {
-        if self.is_live() {
-            sprites::LIVE.sprite(0).into()
-        } else {
-            sprites::DEAD.sprite(0).into()
+        match self.status {
+            Status::Live(count) => sprites::LIVE
+                .animation_frame(&mut (Cell::GROW_FRAMES - count), 0)
+                .into(),
+            Status::Dead(count) => sprites::DEAD
+                .animation_frame(&mut (Cell::SHRINK_FRAMES - count), 0)
+                .into(),
         }
     }
 
@@ -64,6 +79,15 @@ impl Cell {
         let slot = vec2(self.index % BOARD_WIDTH, self.index / BOARD_WIDTH);
         let offset = (agb::display::WIDTH - 16 * BOARD_WIDTH) / 2;
         slot * 16 + vec2(offset, 0 + 8)
+    }
+
+    pub fn update_status(&mut self) {
+        self.status = match self.status {
+            Status::Live(0) => Status::Live(0),
+            Status::Live(count) => Status::Live(count - 1),
+            Status::Dead(0) => Status::Dead(0),
+            Status::Dead(count) => Status::Dead(count - 1),
+        };
     }
 
     pub fn update(&mut self, neighbors: &[&Self; 8]) {
