@@ -50,7 +50,7 @@ impl Cell {
         }
     }
 
-    fn is_live(&self) -> bool {
+    pub fn is_live(&self) -> bool {
         match self.status {
             Status::Live(_) => true,
             Status::Dead(_) => false,

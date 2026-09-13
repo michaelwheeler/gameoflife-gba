@@ -14,6 +14,7 @@ use agb::{
     fixnum::{Vector2D, vec2},
     include_background_gfx,
     input::{Button, ButtonController},
+    sound::mixer::{Frequency, Mixer, SoundChannel},
 };
 
 use world::World;
@@ -23,6 +24,7 @@ use world::World;
 extern crate alloc;
 
 mod cell;
+mod sound;
 mod sprites;
 mod world;
 
@@ -77,7 +79,7 @@ impl Game {
         }
     }
 
-    fn update(&mut self, btn_controller: &ButtonController) {
+    fn update(&mut self, btn_controller: &ButtonController, mixer: &mut Mixer) {
         if btn_controller.is_just_pressed(Button::B) {
             if self.state == GameState::Setup {
                 self.simulation.setup(self.setup.world.clone());
@@ -92,8 +94,8 @@ impl Game {
             }
         }
         match self.state {
-            GameState::Setup => self.setup.update(btn_controller),
-            GameState::Simulation => self.simulation.update(btn_controller),
+            GameState::Setup => self.setup.update(btn_controller, mixer),
+            GameState::Simulation => self.simulation.update(btn_controller, mixer),
             _ => (),
         }
     }
@@ -131,25 +133,35 @@ impl Setup {
         self.selection = world::get_index(slot);
     }
 
-    fn update(&mut self, btn_controller: &ButtonController) {
+    fn update(&mut self, btn_controller: &ButtonController, mixer: &mut Mixer) {
         if btn_controller.is_just_pressed(Button::A) {
             self.world[self.selection].toggle();
+            let sound = if self.world[self.selection].is_live() {
+                SoundChannel::new(sound::ON)
+            } else {
+                SoundChannel::new(sound::OFF)
+            };
+            mixer.play_sound(sound);
         }
         if btn_controller.is_just_pressed(Button::Right) {
             let slot = self.slot() + vec2(1, 0);
             self.set_selection(&slot);
+            mixer.play_sound(SoundChannel::new(sound::TICK));
         }
         if btn_controller.is_just_pressed(Button::Left) {
             let slot = self.slot() + vec2(-1, 0);
             self.set_selection(&slot);
+            mixer.play_sound(SoundChannel::new(sound::TICK));
         }
         if btn_controller.is_just_pressed(Button::Down) {
             let slot = self.slot() + vec2(0, 1);
             self.set_selection(&slot);
+            mixer.play_sound(SoundChannel::new(sound::TICK));
         }
         if btn_controller.is_just_pressed(Button::Up) {
             let slot = self.slot() + vec2(0, -1);
             self.set_selection(&slot);
+            mixer.play_sound(SoundChannel::new(sound::TICK));
         }
         world::update_status(&mut self.world);
     }
@@ -196,7 +208,7 @@ impl Simulation {
         self.running = true;
     }
 
-    fn update(&mut self, button_controller: &ButtonController) {
+    fn update(&mut self, button_controller: &ButtonController, mixer: &mut Mixer) {
         world::update_status(&mut self.world);
         if button_controller.is_just_pressed(Button::Start) {
             self.running = !self.running;
@@ -207,6 +219,7 @@ impl Simulation {
         self.counter += 1;
         if self.counter == Simulation::STEP_FRAMES {
             self.world = world::next_gen(&self.world);
+            mixer.play_sound(SoundChannel::new(sound::TICK));
             self.counter = 0;
         }
     }
@@ -223,12 +236,14 @@ fn main(mut gba: agb::Gba) -> ! {
     VRAM_MANAGER.set_background_palettes(background::PALETTES);
     let mut gfx = gba.graphics.get();
     let mut btn_controller = ButtonController::new();
+    let mut mixer = gba.mixer.mixer(Frequency::Hz18157);
     let mut game = Game::new();
     loop {
         btn_controller.update();
         let mut frame = gfx.frame();
-        game.update(&btn_controller);
+        game.update(&btn_controller, &mut mixer);
         game.show(&mut frame);
+        mixer.frame();
         frame.commit();
     }
 }
