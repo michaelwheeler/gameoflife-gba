@@ -10,7 +10,7 @@ use agb::{
 
 include_aseprite!(
     mod sprites,
-    "src/gfx/cell.aseprite"
+    "gfx/cell.aseprite"
 );
 
 #[derive(Clone, PartialEq, Debug)]
