@@ -12,7 +12,7 @@ use agb::{
         tiled::{RegularBackground, RegularBackgroundSize, TileFormat, VRAM_MANAGER},
     },
     fixnum::{Vector2D, vec2},
-    include_background_gfx,
+    include_aseprite, include_background_gfx,
     input::{Button, ButtonController},
     sound::mixer::{Frequency, Mixer, SoundChannel},
 };
@@ -25,13 +25,14 @@ extern crate alloc;
 
 mod cell;
 mod sound;
-mod sprites;
 mod world;
+
+include_aseprite!(pub mod sprites, "gfx/target.aseprite");
 
 include_background_gfx!(
     mod background,
     "000000",
-    INTRO_SCREEN => deduplicate "src/gfx/intro.aseprite",
+    INTRO_SCREEN => deduplicate "gfx/intro.aseprite",
 );
 
 const BOARD_WIDTH: i32 = 12;
@@ -167,7 +168,7 @@ impl Setup {
     }
 
     fn sprite(&self) -> SpriteVram {
-        sprites::sprites::TARGET.sprite(0).into()
+        sprites::TARGET.sprite(0).into()
     }
 
     fn position(&self) -> Vector2D<i32> {
